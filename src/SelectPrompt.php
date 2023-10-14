@@ -4,7 +4,8 @@ namespace Laravel\Prompts;
 
 use Closure;
 use Illuminate\Support\Collection;
-use InvalidArgumentException;
+use Symfony\Component\Console\Input\ArrayInput;
+use Symfony\Component\Console\Style\SymfonyStyle;
 
 class SelectPrompt extends Prompt
 {
@@ -95,5 +96,46 @@ class SelectPrompt extends Prompt
     public function visible(): array
     {
         return array_slice($this->options, $this->firstVisible, $this->scroll, preserve_keys: true);
+    }
+
+    /**
+     * Highlight the previous entry, or wrap around to the last entry.
+     */
+    protected function highlightPrevious(): void
+    {
+        $this->highlighted = $this->highlighted === 0 ? count($this->options) - 1 : $this->highlighted - 1;
+
+        if ($this->highlighted < $this->firstVisible) {
+            $this->firstVisible--;
+        } elseif ($this->highlighted === count($this->options) - 1) {
+            $this->firstVisible = count($this->options) - min($this->scroll, count($this->options));
+        }
+    }
+
+    /**
+     * Highlight the next entry, or wrap around to the first entry.
+     */
+    protected function highlightNext(): void
+    {
+        $this->highlighted = $this->highlighted === count($this->options) - 1 ? 0 : $this->highlighted + 1;
+
+        if ($this->highlighted > $this->firstVisible + $this->scroll - 1) {
+            $this->firstVisible++;
+        } elseif ($this->highlighted === 0) {
+            $this->firstVisible = 0;
+        }
+    }
+
+    /**
+     * Configure the default fallback behavior.
+     */
+    protected function configureDefaultFallback(): void
+    {
+        self::fallbackUsing(fn (self $prompt) => $this->retryUntilValid(
+            fn () => (new SymfonyStyle(new ArrayInput([]), static::output()))->choice($prompt->label, $prompt->options, $prompt->default),
+            true,
+            $prompt->validate,
+            fn ($message) => static::output()->writeln("<error>{$message}</error>"),
+        ));
     }
 }

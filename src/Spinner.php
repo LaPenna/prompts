@@ -137,24 +137,11 @@ class Spinner extends Prompt
     }
 
     /**
-     * Clear the lines rendered by the spinner.
-     */
-    protected function eraseRenderedLines(): void
-    {
-        $lines = explode(PHP_EOL, $this->prevFrame);
-        $this->moveCursor(-999, -count($lines) + 1);
-        $this->eraseDown();
-    }
 
-    /**
-     * Clean up after the spinner.
+     * Configure the default fallback behavior.
      */
-    public function __destruct()
+    protected function configureDefaultFallback(): void
     {
-        if (! empty($this->pid)) {
-            posix_kill($this->pid, SIGHUP);
-        }
-
-        parent::__destruct();
+        //
     }
 }
